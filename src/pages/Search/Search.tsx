@@ -1,19 +1,24 @@
 import React, { useCallback, useState } from 'react';
 import styled from "styled-components"
-import { getsick } from '../../apis/search';
+import { getsearch } from '../../apis/search';
 import SearchItem from './SearhItem';
 import { Data } from '../../interface/Data';
 import { ReactComponent as SearchIcon } from "../../svg/serachIcon.svg"
 import GetDataFromCache from '../../utils/GetDataFromCache';
+import reportWebVitals from '../../reportWebVitals';
 const EXPRIE_SECOND = 10;
 const Search = () =>{
     const [datas,setDatas]=useState<Data[]>([]);
+    const [isSearched,setisSearched]=useState<boolean>(false);
+    const [noResult,setnoResult]=useState<boolean>(false);
 
     const OnchangeHandler = (e : React.ChangeEvent<HTMLInputElement>) =>{
         inputHandler(e.target.value)
     }
     const sendQuery =async (query : string) => {
         //key를 쿼리로 설정
+        if(query !=="")
+    {
 
         const cachedData = GetDataFromCache(query);
         if(cachedData)
@@ -24,8 +29,9 @@ const Search = () =>{
         else{
             try{
                 console.log("api calling")
-                const response = await getsick(query);
-                if(response.data)
+                const response = await getsearch(query);
+                console.log(response.data)
+                if(response.data.length > 0)
                 {
                     const token ={
                         datas : response.data,
@@ -33,12 +39,20 @@ const Search = () =>{
                     }
                     localStorage.setItem(query,JSON.stringify(token))
                     setDatas(response.data)
+                    setnoResult(false)
+                } //검색결과가 존재하지 않을때
+                else{
+                    setnoResult(true)
                 }
-    
             }catch(err){
                 console.log(err)
             }
         }
+        setisSearched(true)
+    }
+    else{
+        setisSearched(false)
+    }
     }
     const debounce = (callback: (query: string) => Promise<void>,delay : number)=>{
         let timer : NodeJS.Timeout
@@ -60,16 +74,18 @@ const Search = () =>{
                 </InputParent>
                 <Btn>검색</Btn>
         </InputLayer>
-
-        <ItemLayer>
-            <Text>추천검색어</Text>
-        {datas.map( (data,id)=>(
-            <SearchItem
-            key={id}
-            SearchItem={data}
-            />
-        ))}
-        </ItemLayer>
+        {isSearched ? 
+         noResult ? <ItemLayer><Text>검색결과를 찾지 못했습니다</Text></ItemLayer>  : 
+         <ItemLayer>
+         <Text>추천검색어</Text>
+     {datas.map( (data,id)=>(
+         <SearchItem
+         key={id}
+         SearchItem={data}
+         />
+     ))}
+     </ItemLayer>
+    : null}
         </>
         )
 
