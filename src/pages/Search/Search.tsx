@@ -4,6 +4,8 @@ import { getsick } from '../../apis/search';
 import SearchItem from './SearhItem';
 import { Data } from '../../interface/Data';
 import { ReactComponent as SearchIcon } from "../../svg/serachIcon.svg"
+import GetDataFromCache from '../../utils/GetDataFromCache';
+const EXPRIE_SECOND = 10;
 const Search = () =>{
     const [datas,setDatas]=useState<Data[]>([]);
 
@@ -11,12 +13,31 @@ const Search = () =>{
         inputHandler(e.target.value)
     }
     const sendQuery =async (query : string) => {
-    try{
-            const response = await getsick(query);
-            setDatas(response.data)
+        //key를 쿼리로 설정
+
+        const cachedData = GetDataFromCache(query);
+        if(cachedData)
+        {
+            setDatas(cachedData.datas)
             console.log(query)
-        }catch(err){
-            console.log(err)
+        }
+        else{
+            try{
+                console.log("api calling")
+                const response = await getsick(query);
+                if(response.data)
+                {
+                    const token ={
+                        datas : response.data,
+                        expire : Date.now() + EXPRIE_SECOND
+                    }
+                    localStorage.setItem(query,JSON.stringify(token))
+                    setDatas(response.data)
+                }
+    
+            }catch(err){
+                console.log(err)
+            }
         }
     }
     const debounce = (callback: (query: string) => Promise<void>,delay : number)=>{
@@ -34,12 +55,12 @@ const Search = () =>{
         <>
         
          <InputLayer>
-         <InputParent>
-         <SearchIcon/>
-         <Input onChange={OnchangeHandler}/>
-         </InputParent>
-         <Btn>검색</Btn>
+                <InputParent>
+                    <SearchIcon/> <Input onChange={OnchangeHandler}/>
+                </InputParent>
+                <Btn>검색</Btn>
         </InputLayer>
+
         <ItemLayer>
             <Text>추천검색어</Text>
         {datas.map( (data,id)=>(
