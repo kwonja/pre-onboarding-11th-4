@@ -5,38 +5,56 @@ import SearchItem from './SearhItem';
 import { Data } from '../../interface/Data';
 import { ReactComponent as SearchIcon } from "../../svg/serachIcon.svg"
 import GetDataFromCache from '../../utils/GetDataFromCache';
-import reportWebVitals from '../../reportWebVitals';
-const EXPRIE_SECOND = 10;
+import GetExpireToken from '../../utils/GetExpireToken';
+import DeBounce from '../../hook/DeBounce';
 const Search = () =>{
     const [datas,setDatas]=useState<Data[]>([]);
     const [isSearched,setisSearched]=useState<boolean>(false);
     const [noResult,setnoResult]=useState<boolean>(false);
+    const [focusIdx, setFocusIdx] = useState<number>(-1);
+    const [inputValue,setInputValue]=useState<string>("");
+
+    const handleKeyDown = (e : React.KeyboardEvent<HTMLInputElement>) => {
+		const searchLength = datas.length;
+		if (e.key === 'ArrowDown') {
+			searchLength > 0 && setFocusIdx((prev) => (prev + 1) % searchLength)
+		}
+		if (e.key === 'ArrowUp') {
+			searchLength > 0  && focusIdx === -1 ? 
+            setFocusIdx(searchLength-1) :
+            setFocusIdx((prev) => (prev - 1 + searchLength) % searchLength)
+		}
+		if (e.key === 'Escape' || e.key ==='Backspace') {
+			setFocusIdx(-1);
+		}
+		if (e.key === 'Enter') {
+			searchLength > 0 && focusIdx >= 0 && setInputValue(datas[focusIdx].sickNm);
+		}
+	};
 
     const OnchangeHandler = (e : React.ChangeEvent<HTMLInputElement>) =>{
-        inputHandler(e.target.value)
+        setInputValue(e.target.value)
+        debounceHandler(e.target.value)
     }
-    const sendQuery =async (query : string) => {
-        //key를 쿼리로 설정
-        if(query !=="")
-    {
+    const debounceHandler = useCallback(DeBounce((input) => sendQuery(input), 500),[]);
 
+    const sendQuery =async (query : string) => {
+    if(query !=="")
+    {
         const cachedData = GetDataFromCache(query);
         if(cachedData)
         {
+            console.log("useCached")
             setDatas(cachedData.datas)
-            console.log(query)
+            setnoResult(false)
         }
         else{
             try{
                 console.log("api calling")
                 const response = await getsearch(query);
-                console.log(response.data)
-                if(response.data.length > 0)
+                if(response.data.length > 0) //검색 결과가 존재할때
                 {
-                    const token ={
-                        datas : response.data,
-                        expire : Date.now() + EXPRIE_SECOND
-                    }
+                    const token = GetExpireToken(response.data)
                     localStorage.setItem(query,JSON.stringify(token))
                     setDatas(response.data)
                     setnoResult(false)
@@ -50,27 +68,18 @@ const Search = () =>{
         }
         setisSearched(true)
     }
-    else{
-        setisSearched(false)
+    else setisSearched(false)
     }
-    }
-    const debounce = (callback: (query: string) => Promise<void>,delay : number)=>{
-        let timer : NodeJS.Timeout
-        return function (query : string)
-        {
-            clearTimeout(timer)
-            timer = setTimeout( ()=>{
-                callback(query)
-            },delay)
-        }
-    }
-    const inputHandler = useCallback( debounce((input) => sendQuery(input), 500),[debounce]);
     return(
         <>
         
          <InputLayer>
                 <InputParent>
-                    <SearchIcon/> <Input onChange={OnchangeHandler}/>
+                    <SearchIcon/>
+                    <Input
+                    value={inputValue}
+                    onChange={OnchangeHandler} 
+                    onKeyDown={handleKeyDown }/>
                 </InputParent>
                 <Btn>검색</Btn>
         </InputLayer>
@@ -82,6 +91,7 @@ const Search = () =>{
          <SearchItem
          key={id}
          SearchItem={data}
+         focus={id===focusIdx}
          />
      ))}
      </ItemLayer>
@@ -122,6 +132,7 @@ font-size : 30px;
 border:none;
 outline: none;
 text-decoration : underline;
+width : 100%
 `
 const Btn = styled.button`
 width : 15%;
