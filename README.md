@@ -5,7 +5,7 @@
 검색창 구현 + 검색어 추천 기능 구현 + 캐싱 기능 구현
 
 ## 실행영상
-
+![ezgif com-video-to-gif (2)](https://github.com/kwonja/pre-onboarding-11th-4/assets/42410000/b48caf90-4266-4af3-8ae6-0b812fc66188)
 ## 프로젝트 기간
 23.07.16 ~ 23.07.19
 
