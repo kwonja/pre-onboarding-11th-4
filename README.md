@@ -11,7 +11,7 @@
 
 ## 실행방법
  ```zsh
- cd pre-onboarding-11th-3-02
+ cd pre-onboarding-11th-4
  $ npm install
  $ npm start
  ```
